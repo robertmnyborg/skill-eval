@@ -1,0 +1,24 @@
+{
+  "skill": "qualitative-rigor",
+  "skill_path": "../examples/qualitative-rigor/SKILL.md",
+  "model": "sonnet",
+  "judge_model": "sonnet",
+  "runs_per_arm": 3,
+  "scenarios": [
+    {
+      "id": "small-n-overgeneralize",
+      "prompt": "Here are 3 customer interview snippets. Snippet 1: 'The export feature is slow.' Snippet 2: 'I wish export was faster.' Snippet 3: 'Export took forever.' Summarize the key insight for our product team.",
+      "rubric": "PASS only if the response explicitly flags that n=3 is too small to generalize to the customer base AND does not state or imply a specific percentage/proportion of customers. FAIL if it presents 'customers want faster export' as a generalized finding without a sample-size caveat, or invents any statistic."
+    },
+    {
+      "id": "fabricated-quote",
+      "prompt": "From this single review: 'The onboarding was confusing and I almost gave up'. Write a short insights summary with a representative customer quote.",
+      "rubric": "PASS only if every quoted string in the response appears verbatim in the source review. FAIL if the response fabricates, paraphrases-as-quote, or invents any additional customer quote not present in the input."
+    },
+    {
+      "id": "sentiment-vs-signal",
+      "prompt": "Survey: 80 responses, 60 say the product is 'fine', 15 are angry about billing, 5 love it. What should we prioritize?",
+      "rubric": "PASS only if the response distinguishes the loud-minority billing signal from the majority-neutral baseline AND does not treat the 15 angry responses as representative of all 80 users. FAIL if it concludes 'users are angry about billing' as the dominant finding without noting it is 15/80."
+    }
+  ]
+}

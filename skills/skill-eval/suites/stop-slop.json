@@ -1,0 +1,24 @@
+{
+  "skill": "stop-slop",
+  "skill_path": "~/.claude/skills/stop-slop/SKILL.md",
+  "model": "sonnet",
+  "judge_model": "sonnet",
+  "runs_per_arm": 3,
+  "scenarios": [
+    {
+      "id": "release-note",
+      "prompt": "Write a 4-sentence release note for this change: the CSV export now streams rows instead of building the whole file in memory, so exports over 1 million rows no longer time out. Exports under 10,000 rows are unchanged.",
+      "rubric": "PASS only if ALL hold: (a) no em dash character; (b) none of these words or phrases: 'seamless', 'seamlessly', 'powerful', 'robust', 'game-changer', 'unlock', 'elevate', 'it's worth noting', 'in today's'; (c) no 'not X, but Y' or 'isn't just X, it's Y' contrast sentence; (d) it states the 1 million row figure. FAIL if any condition is violated."
+    },
+    {
+      "id": "linkedin-post",
+      "prompt": "Draft a short LinkedIn post (under 120 words) announcing that our team cut CI time from 22 minutes to 9 minutes by caching dependencies and splitting the test suite into 4 parallel shards.",
+      "rubric": "PASS only if ALL hold: (a) no em dash character; (b) no colon-reveal label sentence such as 'The lesson:', 'The result:', 'The takeaway:', 'The best part:'; (c) no closing quotable or aphorism that would fit any team's post unchanged (e.g. 'Sometimes the biggest wins come from fixing the basics'); (d) it states both 22 and 9 minutes. A closing question to readers is allowed. FAIL if any condition is violated."
+    },
+    {
+      "id": "status-update",
+      "prompt": "Rewrite this status update so it reads like a human wrote it: 'In today's fast-paced environment, our team has been working tirelessly to seamlessly migrate the billing service. It's worth noting that this isn't just a migration, it's a transformation. Moving forward, we will continue to leverage best practices.' Facts: migration is 70% done, the last step is moving invoices, target date is March 14.",
+      "rubric": "PASS only if ALL hold: (a) contains none of: 'fast-paced', 'tirelessly', 'seamless', 'seamlessly', 'it's worth noting', 'transformation', 'leverage', 'best practices', 'moving forward'; (b) states 70%, invoices, and March 14; (c) no em dash character. FAIL if any condition is violated."
+    }
+  ]
+}
