@@ -9,15 +9,17 @@ Two Claude Code skills for keeping a harness honest:
 
 Most people install a skill, feel that the output got better, and never check. A skill can make the model worse: the public case that started this repo is a skill that scored 77% with it loaded vs 97% without it (Nick Nisi, WorkOS). The only way to know is to run both arms and count.
 
-Example run, `stop-slop` (Hardik Pandya's writing-style skill, not bundled; `suites/stop-slop.json` expects it at `~/.claude/skills/stop-slop/`), 3 scenarios, 3 runs per arm, Sonnet as task model and judge:
+Example run, `stop-slop` (Hardik Pandya's writing-style skill, published version at commit `8da1f03`, not bundled; `suites/stop-slop.json` expects it at `~/.claude/skills/stop-slop/`), 3 scenarios, 5 runs per arm, Sonnet as task model and judge. The rubrics were fixed before these runs, so no row here was used to tune them:
 
 | scenario | with-skill | without-skill | delta | verdict |
 |---|---|---|---|---|
-| release-note | 100% (3/3) | 66% (2/3) | +34 pts | helps |
-| linkedin-post | 100% (3/3) | 0% (0/3) | +100 pts | helps |
-| status-update | 100% (3/3) | 100% (3/3) | 0 pts | neutral |
+| release-note | 100% (5/5) | 100% (5/5) | 0 pts | neutral |
+| linkedin-post | 100% (5/5) | 0% (0/5) | +100 pts | helps |
+| status-update | 100% (5/5) | 80% (4/5) | +20 pts | helps |
 
-**Overall: with 100% vs without 55%, +45 pts. Verdict: KEEP.**
+**Overall: with 100% vs without 60%, +40 pts. Verdict: KEEP.**
+
+An earlier 3-run pass scored `release-note` at +34 and `status-update` at 0. At 3 runs per arm, one output flips a scenario by 33 points, so read per-scenario deltas under 5 runs as noise and trust the overall line.
 
 The bundled `qualitative-rigor` example scored 100% vs 100% on the same day: current Sonnet already flags small samples and refuses to invent quotes, so that skill costs tokens and buys nothing. Both results came from the same command, pointed at a different suite.
 
