@@ -54,7 +54,10 @@ SKILL_BODY=$(cat "$SKILL_PATH")
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STAMP_SRC="${SKILL_EVAL_STAMP:-$(date +%Y%m%d-%H%M%S)}"   # override to name the result dir
-OUTDIR="$HERE/results/${SKILL}-${STAMP_SRC}"
+# Plugin installs live in a cache that is replaced on update, so keep results outside it.
+case "$HERE" in */plugins/cache/*) DEFAULT_RES="$HOME/.claude/skill-eval-results" ;; *) DEFAULT_RES="$HERE/results" ;; esac
+RESULTS_DIR="${SKILL_EVAL_RESULTS:-$DEFAULT_RES}"
+OUTDIR="$RESULTS_DIR/${SKILL}-${STAMP_SRC}"
 mkdir -p "$OUTDIR"
 RAW="$OUTDIR/raw.jsonl"; : > "$RAW"
 
@@ -201,7 +204,7 @@ TVERDICT="NEUTRAL — skill makes no measurable difference; consider deleting to
   [ "$JERRN" -gt 0 ] && echo "_$JERRN judge reply(ies) were unparsable and are excluded from both numerator and denominator (see \`reason\` in raw.jsonl)._" && echo
   # Judge calibration: TPR/TNR from hand labels (calibrate-judge.py score). Without it the
   # verdict rests on a judge whose error rate nobody has measured.
-  CAL="$HERE/results/judge-calibration.json"
+  CAL="$RESULTS_DIR/judge-calibration.json"
   if [ -f "$CAL" ] && [ "$(jq -r '.judge_model' "$CAL")" = "$JUDGE_MODEL" ]; then
     python3 "$HERE/calibrate-judge.py" correct "$TW" "$TO"
   else

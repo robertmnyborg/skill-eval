@@ -11,11 +11,13 @@ Measure, don't assume. A skill can make the model **worse** — the canonical ca
 
 `run-eval.sh <suite.json>` runs each scenario twice — WITH the SKILL.md body injected as a system prompt, WITHOUT it — `runs_per_arm` times each, judges every output against the scenario's rubric, and prints a pass-rate delta table with a KEEP / DELETE / NEUTRAL verdict.
 
+`<skill-dir>` is the folder this SKILL.md was loaded from (`~/.claude/skills/skill-eval` for a manual install, the plugin cache path for a plugin install).
+
 ```bash
-~/.claude/skills/skill-eval/run-eval.sh ~/.claude/skills/skill-eval/suites/<skill>.json --runs 3
+<skill-dir>/run-eval.sh <skill-dir>/suites/<skill>.json --runs 3
 ```
 
-Output: `results/<skill>-<stamp>/report.md` (path printed to stdout) + `raw.jsonl` (every transcript + verdict). Set `SKILL_EVAL_STAMP=<name>` to choose the result dir name; the default is a timestamp.
+Output: `results/<skill>-<stamp>/report.md` (under `~/.claude/skill-eval-results/` for a plugin install; set `SKILL_EVAL_RESULTS` to override) (path printed to stdout) + `raw.jsonl` (every transcript + verdict). Set `SKILL_EVAL_STAMP=<name>` to choose the result dir name; the default is a timestamp.
 
 ## Authoring a suite (the only real work)
 
@@ -45,9 +47,9 @@ The judge is a model too, and its error rate sets how small a delta means anythi
 `results/judge-calibration.json` exists for the suite's `judge_model`, every report says so.
 
 ```bash
-python3 ~/.claude/skills/skill-eval/calibrate-judge.py sample   # 20 judged-PASS + 20 judged-FAIL rows, blind
+python3 <skill-dir>/calibrate-judge.py sample   # 20 judged-PASS + 20 judged-FAIL rows, blind
 # write PASS / FAIL / SKIP after each LABEL: in results/judge-labels.md
-python3 ~/.claude/skills/skill-eval/calibrate-judge.py score    # TPR/TNR -> judge-calibration.json
+python3 <skill-dir>/calibrate-judge.py score    # TPR/TNR -> judge-calibration.json
 ```
 
 - **TPR and TNR, never agreement.** TPR = judge says PASS when you did; TNR = judge says FAIL when you did. A judge that always says PASS scores 75% agreement on a 75%-PASS suite and catches nothing.

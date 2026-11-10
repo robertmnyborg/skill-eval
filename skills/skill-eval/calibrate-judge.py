@@ -12,10 +12,13 @@ are scored once. Until the judge prompt has been tuned, both splits measure the 
 and the calibration uses all rows.
 """
 import json, random, re, sys
+import os
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-RES = HERE / 'results'
+# Same rule as run-eval.sh: plugin caches are replaced on update, so keep results outside them.
+_default_res = Path.home() / '.claude' / 'skill-eval-results' if '/plugins/cache/' in str(HERE) else HERE / 'results'
+RES = Path(os.environ['SKILL_EVAL_RESULTS']) if os.environ.get('SKILL_EVAL_RESULTS') else _default_res
 LABELS, KEY, CAL = RES / 'judge-labels.md', RES / 'judge-labels.key.json', RES / 'judge-calibration.json'
 
 

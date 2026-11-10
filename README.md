@@ -31,6 +31,23 @@ The bundled `qualitative-rigor` example scored 100% vs 100% on the same day: cur
 
 ## Install
 
+Claude Code:
+
+```
+/plugin marketplace add robertmnyborg/claude-harness
+/plugin install skill-eval@claude-harness
+```
+
+Codex, Cursor, and other agents that read `SKILL.md`, via the [skills CLI](https://skills.sh):
+
+```bash
+npx skills add robertmnyborg/skill-eval
+```
+
+A plugin install writes results to `~/.claude/skill-eval-results/`. The weekly retro sweep script needs the manual install.
+
+### Manual install
+
 ```bash
 git clone https://github.com/robertmnyborg/skill-eval
 cp -R skill-eval/skills/skill-eval skill-eval/skills/retro ~/.claude/skills/
