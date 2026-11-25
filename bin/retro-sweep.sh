@@ -110,4 +110,38 @@ if [[ -f "$STAGED" ]]; then
   fi
 fi
 
+# Memory consolidation ("dream") pass. Memories written during sessions are written
+# greedily, one task at a time, and drift into a store that contradicts itself unless an
+# offline pass reconciles them (the encode-then-consolidate design hosted agent platforms
+# use). memory-lint (no LLM) finds dead paths, dangling [[links]], orphans and superseded
+# entries; a headless pass fixes at most 15. It never deletes: a retired memory moves to
+# memory-archive/ next to the store, with a row in its LOG.md, and stops loading.
+# Rollback: tar -xzf "$LOG_DIR/memory-pre-dream-<date>.tgz" -C "$(dirname "$MEMDIR")"
+# Config: MEMORY_DIR (default: Claude Code's auto-memory dir for $HOME),
+#         RETRO_DREAM_BUDGET (default 10, passed as --max-budget-usd).
+LINT="$(cd "$(dirname "$0")" && pwd)/memory-lint"
+MEMDIR="${MEMORY_DIR:-$HOME/.claude/projects/${HOME//\//-}/memory}"
+MEMARCH="$(dirname "$MEMDIR")/memory-archive"
+if [[ -d "$MEMDIR" && -f "$LINT" ]]; then
+  TODAY=$(date +%Y-%m-%d)
+  tar -czf "$LOG_DIR/memory-pre-dream-$TODAY.tgz" -C "$(dirname "$MEMDIR")" "$(basename "$MEMDIR")" >> "$LOG" 2>&1 || true
+  ML_MD="$LOG_DIR/memory-lint-$TODAY.md"
+  python3 "$LINT" --memory-dir "$MEMDIR" --out "$ML_MD" >> "$LOG" 2>&1 || true
+  if [[ -s "$ML_MD" && -s "$LOG_DIR/memory-pre-dream-$TODAY.tgz" ]]; then
+    DREAM_PROMPT="Memory consolidation pass on the memory store at $MEMDIR (index MEMORY.md, one fact per file). Start from the lint report at $ML_MD. Make at most 15 changes, highest value first. Never delete a memory file: to retire one, MOVE it to $MEMARCH/ (create it) and remove its index line.
+(a) dead: a memory names a path that no longer exists. Find where it moved and fix the path; if the thing is gone and the memory has no other true content, retire it.
+(b) superseded: fold any still-true detail into the current memory and retire the old one.
+(c) duplicates: merge into the better-named memory, keep every distinct detail, retire the other, fix links to it.
+(d) dangling: fix each [[link]] to the memory it meant, or remove the brackets.
+(e) orphans: leave them unless also dead or superseded; age alone is no reason to retire.
+Before retiring or rewriting a fact, check it against the source it names and, for facts about behavior, grep this week's transcripts under ~/.claude/projects/*/. Never retire a feedback memory (a user correction) unless its content is merged into another first. When unsure, change nothing.
+Log every change to $MEMARCH/LOG.md (header '| date | file | action | reason | now in |'; action fixed-path, fixed-link, merged, retired, or left for a finding you did not change). Finish with one line per change."
+    set +e
+    "$CLAUDE" -p "$DREAM_PROMPT" --max-budget-usd "${RETRO_DREAM_BUDGET:-10}" \
+      --permission-mode acceptEdits --allowedTools "Bash" "Read" "Grep" "Glob" "Write" "Edit" >> "$LOG" 2>&1
+    set -e
+    python3 "$LINT" --memory-dir "$MEMDIR" --out "$LOG_DIR/memory-lint-$TODAY-after.md" >> "$LOG" 2>&1 || true
+  fi
+fi
+
 echo "retro sweep finished $(date)" >> "$LOG"

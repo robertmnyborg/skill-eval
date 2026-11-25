@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""memory-lint: deterministic checks on a Claude Code memory store (no LLM, read-only).
+
+Feeds the weekly retro sweep's (bin/retro-sweep.sh) memory consolidation ("dream") pass. Finds:
+  dangling  [[links]] that match no memory's name or file stem
+  dead      ~/ or home-folder paths a memory names that no longer exist
+  orphan    memories not edited in 60+ days that no index line or other memory links to
+  unindexed memories no MEMORY.md (or areas/*.md) line points at
+  superseded memories whose body or index line says superseded/renamed/replaced/closed
+Usage: memory-lint [--memory-dir DIR] [--out FILE] [--days 60]
+Default memory dir: $MEMORY_DIR, else Claude Code's auto-memory dir for your home folder
+(~/.claude/projects/<home path with / as ->/memory).
+"""
+import argparse, os, re, sys, time
+
+HOME = os.path.expanduser("~")
+MEM = os.environ.get("MEMORY_DIR") or os.path.join(HOME, ".claude/projects", HOME.replace(os.sep, "-"), "memory")
+LINK = re.compile(r"\[\[([^\]|#]+)")
+PATH = re.compile(r"(?<![\w/.])((?:~|" + re.escape(HOME) + r")/[\w.~/-]+)")
+STALE_WORDS = re.compile(r"\b(superseded|SUPERSEDED|renamed|RENAMED|replaced by|no longer exists|CLOSED|deprecated)\b")
+
+
+def load():
+    mems, index = {}, {}
+    for f in sorted(os.listdir(MEM)):
+        if f.endswith(".md") and f != "MEMORY.md":
+            p = os.path.join(MEM, f)
+            mems[f] = open(p, encoding="utf-8", errors="replace").read()
+    areas = os.path.join(MEM, "areas")  # optional sub-indexes, one line per memory
+    subs = ["areas/" + a for a in sorted(os.listdir(areas)) if a.endswith(".md")] if os.path.isdir(areas) else []
+    for idx in ["MEMORY.md"] + subs:
+        index[idx] = open(os.path.join(MEM, idx), encoding="utf-8", errors="replace").read()
+    return mems, index
+
+
+def names_of(mems):
+    """Every name a [[link]] may use for each file: stem, kebab stem, frontmatter name."""
+    out = {}
+    for f, body in mems.items():
+        stem = f[:-3]
+        keys = {stem, stem.replace("_", "-")}
+        m = re.search(r"^name:\s*(.+)$", body, re.M)
+        if m:
+            keys.add(m.group(1).strip().strip("\"'"))
+        for k in keys:
+            out[k.lower()] = f
+    return out
+
+
+def path_exists(p):
+    p = p.rstrip(".,;:)`'\"")
+    full = os.path.expanduser(p)
+    if any(ch in p for ch in "*<>{}") or full.startswith(os.path.join(HOME, ".claude/projects")):
+        return True
+    try:
+        os.lstat(full)
+        return True
+    except PermissionError:
+        return True  # sandbox-denied (~/.env*): present, just unreadable here
+    except FileNotFoundError:
+        pass
+    # A path cut at a space ("~/Library/Application Support"): its parent holds a name it starts.
+    parent, base = os.path.split(full.rstrip("/"))
+    try:
+        return bool(base) and any(n.startswith(base + " ") for n in os.listdir(parent))
+    except OSError:
+        return False
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--memory-dir")
+    ap.add_argument("--out")
+    ap.add_argument("--days", type=int, default=60)
+    a = ap.parse_args()
+    global MEM
+    MEM = os.path.abspath(os.path.expanduser(a.memory_dir or MEM))
+    mems, index = load()
+    names = names_of(mems)
+    all_index = "\n".join(index.values())
+    linked_from = {f: set() for f in mems}
+    rows = {"dangling": [], "dead": [], "orphan": [], "unindexed": [], "superseded": []}
+
+    for f, body in mems.items():
+        for target in LINK.findall(body):
+            t = target.strip().lower()
+            hit = names.get(t) or names.get(t.replace("_", "-")) or names.get(t.replace("-", "_"))
+            if hit:
+                linked_from[hit].add(f)
+            else:
+                rows["dangling"].append((f, f"[[{target.strip()}]]"))
+        for p in set(PATH.findall(body)):
+            if not path_exists(p):
+                rows["dead"].append((f, p))
+        if STALE_WORDS.search(body):
+            rows["superseded"].append((f, STALE_WORDS.search(body).group(0) + " (body)"))
+
+    now = time.time()
+    for f in mems:
+        indexed = f in all_index
+        if not indexed:
+            rows["unindexed"].append((f, ""))
+        for idx, text in index.items():
+            for line in text.splitlines():
+                if f in line and STALE_WORDS.search(line):
+                    rows["superseded"].append((f, f"{STALE_WORDS.search(line).group(0)} ({idx})"))
+        age = (now - os.path.getmtime(os.path.join(MEM, f))) / 86400
+        if age >= a.days and not linked_from[f]:
+            rows["orphan"].append((f, f"{int(age)}d, no [[link]] to it{'' if indexed else ', not indexed'}"))
+
+    lines = [f"# Memory lint {time.strftime('%Y-%m-%d')}", "",
+             f"{len(mems)} memory files. " + ", ".join(f"{k}: {len(v)}" for k, v in rows.items()), ""]
+    for k, v in rows.items():
+        lines += [f"## {k} ({len(v)})", "", "| file | detail |", "|---|---|"]
+        lines += [f"| {f} | {d} |" for f, d in sorted(set(v))] + [""]
+    text = "\n".join(lines)
+    if a.out:
+        open(a.out, "w").write(text)
+        print(lines[2])
+    else:
+        print(text)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

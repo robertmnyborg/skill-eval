@@ -52,7 +52,7 @@ A plugin install writes results to `~/.claude/skill-eval-results/`. The weekly r
 git clone https://github.com/robertmnyborg/skill-eval
 cp -R skill-eval/skills/skill-eval skill-eval/skills/retro ~/.claude/skills/
 # optional, for the weekly sweep:
-mkdir -p ~/bin && cp skill-eval/bin/retro-sweep.sh ~/bin/
+mkdir -p ~/bin && cp skill-eval/bin/retro-sweep.sh skill-eval/bin/memory-lint ~/bin/
 ```
 
 Claude Code picks up both skills on the next session. Ask "is the X skill worth it?" or "do a retro" and they trigger, or call them as `/skill-eval` and `/retro`.
@@ -100,6 +100,8 @@ Rules that decide whether the number means anything are in [`skills/skill-eval/S
 
 `bin/retro-sweep.sh` runs the sweep headless. It fails loudly when the watermark does not advance, because one run died after a single turn and the loop did nothing for a week without anyone noticing.
 
+After the sweep it runs a memory consolidation pass. `bin/memory-lint` (no LLM) lists dead paths, dangling `[[links]]`, orphans and superseded memories, and a headless pass fixes at most 15 a week. Retired memories move to `memory-archive/` beside the store, with a row in `memory-archive/LOG.md`, instead of being deleted. A tarball of the store taken before the pass is the rollback.
+
 Optional settings (env vars):
 
 | var | default | purpose |
@@ -108,6 +110,8 @@ Optional settings (env vars):
 | `RETRO_LOG_DIR` | `~/Library/Logs/retro-sweep` (macOS), `~/.local/state/retro-sweep` | logs and pre-step tables |
 | `RETRO_SIGNALS_DIR` | unset | `scripts/` of [claude-oak-agents](https://github.com/robertmnyborg/claude-oak-agents), adds deterministic false-completion and reprompt tables |
 | `RETRO_NPX` | `command -v npx` | npx for the ccusage cost pre-step |
+| `MEMORY_DIR` | `~/.claude/projects/<home path with / as ->/memory` | memory store for the consolidation pass and `memory-lint` |
+| `RETRO_DREAM_BUDGET` | `10` | `--max-budget-usd` for the consolidation pass |
 
 Scheduling is optional. On macOS, edit `YOUR_USER` in `launchd/com.example.retro-sweep.plist`, copy it to `~/Library/LaunchAgents/`, and run `launchctl load` on it. Elsewhere, a cron line works: `0 9 * * 6 $HOME/bin/retro-sweep.sh`.
 
@@ -117,6 +121,7 @@ Scheduling is optional. On macOS, edit `YOUR_USER` in `launchd/com.example.retro
 skills/skill-eval/   SKILL.md, run-eval.sh, calibrate-judge.py, suites/, examples/
 skills/retro/        SKILL.md
 bin/retro-sweep.sh   headless weekly sweep
+bin/memory-lint      no-LLM checks on a memory store (dead paths, dangling links, superseded)
 launchd/             optional macOS schedule template
 ```
 

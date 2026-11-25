@@ -143,6 +143,7 @@ Per-session retros spot-check; the failures that matter cluster ACROSS sessions.
 
 5. **Disposition per cluster, structural-fix-first** (step 3 above). Recurring clusters are precisely the ones that deserve a hook/skill/CLAUDE.md patch, not a memory note.
 6. **Close out**: write the new timestamp to `~/.claude/.retro-sweep-last` (UTC, `%Y-%m-%dT%H:%M:%SZ`). If you keep a changelog for harness edits, append a dated entry. Report: clusters found → fix applied → expected effect, plus one cost line (window total, top session $ and %, sessions flagged). **Closing signal: repeat clusters trending to zero week-over-week AND no unflagged runaway sessions** — state whether this week's clusters are new or repeats from last sweep.
+7. **Memory consolidation (run by `bin/retro-sweep.sh` after the sweep).** Retros write memory in the hot path, one task at a time, so the store drifts: paths that moved, facts a later memory replaced, two files saying the same thing, `[[links]]` to names that never existed. `bin/memory-lint` (no LLM) lists those; a separate headless pass fixes at most 15 a week, checking each against its source and the week's transcripts. It never deletes: a retired memory moves to `memory-archive/` beside the store with a row in `memory-archive/LOG.md`, so it stops loading but stays on record. Closing signal: lint's dead, dangling and superseded counts fall week over week. (Provenance: one 161-file store had 15 dead paths, 10 dangling links and 14 superseded entries, all still loading.)
 
 ## Gotchas (the meta ones)
 
