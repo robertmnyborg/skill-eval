@@ -10,8 +10,9 @@
 #   CLAUDE_BIN         claude binary (default: `command -v claude`, then ~/.local/bin/claude)
 #   RETRO_LOG_DIR      where logs and pre-step tables go (default ~/Library/Logs/retro-sweep
 #                      on macOS, ~/.local/state/retro-sweep elsewhere)
-#   RETRO_SIGNALS_DIR  path to claude-oak-agents/scripts for the false-completion and
-#                      drift pre-steps (https://github.com/robertmnyborg/claude-oak-agents)
+#   RETRO_SIGNALS_DIR  folder holding false_completion.py and drift_signals.py for the
+#                      deterministic pre-steps (default: this repo's scripts/; empty string
+#                      skips them)
 #   RETRO_NPX          npx binary for the ccusage cost pre-step (default: `command -v npx`)
 
 set -e
@@ -66,7 +67,8 @@ fi
 
 # Optional deterministic pre-steps (stdlib python, no LLM): unverified done/fixed claims a
 # user contradicted within 24h, and reprompt / path-churn signals.
-if [[ -n "${RETRO_SIGNALS_DIR:-}" && -d "$RETRO_SIGNALS_DIR" ]]; then
+RETRO_SIGNALS_DIR="${RETRO_SIGNALS_DIR-$(cd "$(dirname "$0")/.." && pwd)/scripts}"
+if [[ -n "$RETRO_SIGNALS_DIR" && -d "$RETRO_SIGNALS_DIR" ]]; then
   WIN=( --days 7 ); [[ -n "$WM" ]] && WIN=( --since "$WM" )
   python3 "$RETRO_SIGNALS_DIR/false_completion.py" "${WIN[@]}" --out "$LOG_DIR/false-completions-week.md" >> "$LOG" 2>&1 || true
   python3 "$RETRO_SIGNALS_DIR/drift_signals.py" "${WIN[@]}" --out "$LOG_DIR/drift-signals-week.md" >> "$LOG" 2>&1 || true

@@ -70,9 +70,8 @@ Per-session retros spot-check; the failures that matter cluster ACROSS sessions.
    filter the sweep reports a landed fix as a failed one and re-fixes it.
 2. **Extract signals per transcript** with the same detectors as above (doom loops, contradicted claims, user corrections, dead ends), using `jq` scans first — only Read a transcript deeply when its scan shows a signal.
 
-   **Optional deterministic pre-steps.** If `RETRO_SIGNALS_DIR` points at a checkout of
-   [claude-oak-agents](https://github.com/robertmnyborg/claude-oak-agents) `scripts/`,
-   `bin/retro-sweep.sh` writes two tables to its log dir before the sweep starts (stdlib python,
+   **Optional deterministic pre-steps.** By default `bin/retro-sweep.sh` runs this repo's
+   [`scripts/`](../../scripts/) (set `RETRO_SIGNALS_DIR=` to skip them) and writes two tables to its log dir before the sweep starts (stdlib python,
    no LLM). Start from them when present:
    - `false-completions-week.md`: every assistant turn that claimed done/fixed/merged with no
      executing tool call behind it AND was contradicted or re-asked by the user within 24h in the

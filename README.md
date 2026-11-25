@@ -108,7 +108,7 @@ Optional settings (env vars):
 |---|---|---|
 | `CLAUDE_BIN` | `command -v claude` | claude binary |
 | `RETRO_LOG_DIR` | `~/Library/Logs/retro-sweep` (macOS), `~/.local/state/retro-sweep` | logs and pre-step tables |
-| `RETRO_SIGNALS_DIR` | unset | `scripts/` of [claude-oak-agents](https://github.com/robertmnyborg/claude-oak-agents), adds deterministic false-completion and reprompt tables |
+| `RETRO_SIGNALS_DIR` | this repo's [`scripts/`](scripts/) | folder with `false_completion.py` and `drift_signals.py`, which add deterministic false-completion and reprompt tables; set it empty to skip them |
 | `RETRO_NPX` | `command -v npx` | npx for the ccusage cost pre-step |
 | `MEMORY_DIR` | `~/.claude/projects/<home path with / as ->/memory` | memory store for the consolidation pass and `memory-lint` |
 | `RETRO_DREAM_BUDGET` | `10` | `--max-budget-usd` for the consolidation pass |
